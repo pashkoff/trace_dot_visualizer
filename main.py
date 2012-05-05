@@ -4,11 +4,12 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 lg = logging.getLogger(__name__)
 
-import itertools
 import re
 from datetime import datetime
 
-
+def funcname():
+    import sys
+    return sys._getframe(1).f_code.co_name
 
 class Event():
     def __init__(self, level = '', time = '', line = '', thread = '', proc = '', source = '', source_line = '', msg = ''):
@@ -68,9 +69,12 @@ class Log4CplusEventParser():
         pass
 
 event_parsers = (SimpleEventParser(), Log4CplusEventParser())
-
+EVENTS = dict()
 
 def parse(lines):
+    lg = logging.getLogger(funcname())
+    lg.setLevel(logging.ERROR)
+
     i = 0
     for line in lines:
         i += 1
@@ -90,6 +94,7 @@ def parse(lines):
             lg.warn('Unable to parse string')
         else:
             ev.line = i
+            EVENTS[i] = ev
             pass
 
         lg.info(ev)
@@ -101,6 +106,8 @@ def parse(lines):
 def main():
     fd = open('log.txt', 'r')
     parse(fd)
+
+    lg.info(EVENTS)
     pass
 
 if __name__ == "__main__":
