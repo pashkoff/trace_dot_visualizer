@@ -75,6 +75,7 @@ class Log4CplusEventParser():
 event_parsers = (SimpleEventParser(), Log4CplusEventParser())
 EVENTS = dict()
 THREADS = dict()
+PARENTS = dict()
 
 def parse(lines):
     lg = logging.getLogger(funcname())
@@ -127,6 +128,96 @@ def make_graph():
 #    print THREADS.keys\
     pass
 
+def make_mydot():
+    lg.info(funcname())
+
+    tev = dict()
+    times = set()
+    for k,v in EVENTS.iteritems():
+        lg.debug(v.time)
+        times.add(v.time)
+        if not v.time in tev:
+            tev[v.time] = list()
+        tev[v.time].append(v.line)
+        pass
+
+    lg.info('times and tev')
+
+    times = sorted(times)
+    timesd = dict()
+    for t in times:
+        timesd[t] = t.strftime('"%H:%M:%S:%f"')
+
+    lg.info('timesd')
+
+    for k,v in THREADS.iteritems():
+        vit = iter(v)
+        b = vit.next()
+        PARENTS[b] = None
+        for e in vit:
+            PARENTS[e] = b
+            b = e
+            pass
+        pass
+
+    lg.info('PARENTS')
+
+
+    fd = open('my.dot', 'wb')
+
+    lg.info('opened file my.dot')
+
+    fd.write('digraph {\n')
+
+    fd.write('{\n')
+    fd.write('node [shape=plaintext];\n')
+    fd.write('past')
+    for t in iter(times):
+        fd.write(' -> {0}'.format(timesd[t]))
+        pass
+    fd.write(';\n')
+    fd.write('}\n\n')
+
+    lg.info('done timeline')
+
+    fd.write('{\n')
+    fd.write('rank = same; "past"; ')
+    for t in THREADS.keys():
+        fd.write('"{0}"; '.format(t))
+        pass
+    fd.write('\n}\n\n')
+
+    lg.info('done THREADS')
+
+    fd.write('node [shape=box];\n')
+    for t in times:
+        fd.write('{{ rank = same; {0}; '.format(timesd[t]))
+        for e in tev[t]:
+            fd.write('"{0}"; '.format(e))
+            pass
+        fd.write('}\n')
+        pass
+
+    lg.info('done vertices')
+
+    fd.write('\n\n')
+    for k,v in EVENTS.iteritems():
+        p = PARENTS[v.line]
+        if p:
+            fd.write('"{0}" -> "{1}";\n'.format(p, v.line))
+        else:
+            fd.write('"{0}" -> "{1}";\n'.format(v.thread, v.line))
+        pass
+
+    lg.info('done edges')
+
+    fd.write('}')
+    fd.close()
+
+    lg.info('file closed')
+    pass
+
+
 def make_pygraph():
     gr = digraph()
     gr.add_nodes(EVENTS.keys())
@@ -166,7 +257,8 @@ def main():
     lg.info(len(EVENTS))
 
     make_graph()
-    make_pygraph()
+#    make_pygraph()
+    make_mydot()
 
     pass
 
