@@ -209,11 +209,21 @@ def make_mydot():
         fd.write('{{ rank = same; {0}; '.format(timesd[t]))
         for e in tev[t]:
             fd.write('"{0}"; '.format(e))
+            break
             pass
         fd.write('}\n')
         pass
 
     lg.info('done vertices')
+
+    for k,v in tev.iteritems():
+        fd.write('subgraph { ')
+        for vv in v:
+            fd.write('"{0}"; '.format(vv))
+            pass
+        fd.write('}\n')
+        pass
+    lg.info('done subgraphs')
 
     fd.write('\n\n')
     for k,v in EVENTS.iteritems():
