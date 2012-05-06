@@ -5,11 +5,15 @@ logging.basicConfig(level=logging.DEBUG)
 lg = logging.getLogger(__name__)
 
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from pygraph.classes.graph import graph
 from pygraph.classes.digraph import digraph
 from pygraph.readwrite.dot import write
+
+import pytz
+ua_tz = pytz.timezone('Europe/Kiev')
+utc_tz = pytz.utc
 
 def funcname():
     import sys
@@ -17,6 +21,10 @@ def funcname():
 
 class Event():
     def __init__(self, level = '', time = '', line = '', thread = '', proc = '', source = '', source_line = '', msg = ''):
+
+        # todo
+        time = time.replace(year = 2000, month = 1, day = 1)
+
         self.level = level
         self.time = time
         self.line = line
@@ -50,7 +58,14 @@ class SimpleEventParser():
             raise ParseError
 
         g = m.groupdict()
-        g['time'] = datetime.strptime(g['time']+'000', r'%H:%M:%S:%f')
+        t = datetime.strptime(g['time']+'000', r'%H:%M:%S:%f')
+##        lg.debug(t)
+#        t = ua_tz.localize(t, is_dst=True)
+##        lg.debug(t)
+#        t = utc_tz.normalize(t.astimezone(utc_tz))
+##        lg.info(t)
+        t = t - timedelta(hours = 3)
+        g['time'] = t
 
         return Event(**g)
 
