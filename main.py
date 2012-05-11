@@ -243,49 +243,16 @@ def make_mydot(fd):
 
     pass
 
-
-def make_pygraph():
-    gr = digraph()
-    gr.add_nodes(EVENTS.keys())
-
-    lg.info('add nodes done')
-
-    lg.info('THREADS fill done')
-
-    for k, v in THREADS.iteritems():
-        vit = iter(v)
-        b = vit.next()
-        for e in vit:
-            gr.add_edge((b, e))
-            b = e
-            pass
-        pass
-
-    lg.info('add_edge done')
-
-    dot = write(gr)
-    lg.info('dot write done')
-
-    fd = open('gv.dot', 'wb')
-    fd.write(dot)
-    fd.close()
-    lg.info('dot file write done')
-
-    pass
-
-
 def main():
     fd = open('log.txt', 'r')
     parse(fd)
     fd.close()
 
-#    lg.info(EVENTS)
-    lg.info(len(EVENTS))
-
     make_graph()
-#    make_pygraph()
 
 #    with open('my.dot', 'wb') as fd:
+#        make_mydot(fd)
+        
     with closing(StringIO()) as fd:
         make_mydot(fd)
         win = xdot.DotWindow()
