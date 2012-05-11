@@ -1,3 +1,5 @@
+#!/usr/bin/env python2
+
 __author__ = 'pashkoff'
 
 import logging
@@ -14,6 +16,12 @@ from pygraph.readwrite.dot import write
 import pytz
 ua_tz = pytz.timezone('Europe/Kiev')
 utc_tz = pytz.utc
+
+from cStringIO import StringIO
+from contextlib import closing
+
+import xdot
+import gtk
 
 def funcname():
     import sys
@@ -277,8 +285,13 @@ def main():
     make_graph()
 #    make_pygraph()
 
-    with open('my.dot', 'wb') as fd:
+#    with open('my.dot', 'wb') as fd:
+    with closing(StringIO()) as fd:
         make_mydot(fd)
+        win = xdot.DotWindow()
+        win.set_dotcode(fd.getvalue())
+        win.connect('destroy', gtk.main_quit)
+        gtk.main()
 
     pass
 
