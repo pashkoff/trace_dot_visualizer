@@ -63,7 +63,7 @@ class ThreadNode(Node):
     def __str__(self):
         return str(self.thread)
     def get_dot_name(self):
-        return '"{0}"; '.format(self.thread)
+        return '"{0}"'.format(self.thread)
     pass
 
 class TimeNode(Node):
@@ -101,7 +101,7 @@ class EventNode(Node):
         pass
     
     def get_dot_name(self):
-        return '"{0}"; '.format(self.event.line)
+        return '"{0}"'.format(self.event.line)
     
     pass
 
