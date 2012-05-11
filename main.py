@@ -111,10 +111,13 @@ class Graph():
         self.events = events
         
         self.times = set()
+        self.time_events = dict()
         self.threads = set()
         self.thread_events = dict()
         
-        self.times.add(TimeNode('past'))
+        past = TimeNode('past')
+        self.times.add(past)
+        self.time_events[past] = list()
         
     def make_graph(self):
         lg.info(funcname())
@@ -123,6 +126,7 @@ class Graph():
             tm = TimeNode(v.time)
             if not tm in self.times:
                 self.times.add(tm)
+                self.time_events[tm] = list()
                 pass
             
             th = ThreadNode(v.thread)
@@ -133,6 +137,7 @@ class Graph():
             
             ev = EventNode(tm, th, v)
             self.thread_events[th].append(ev)
+            self.time_events[tm].append(ev)
             pass
         
         for th, elist in self.thread_events.iteritems():
@@ -158,6 +163,36 @@ class Graph():
         fd.write(' -> '.join(map(lambda x: x.get_dot_name(), sorted(self.times))))
         fd.write(';\n')
         fd.write('}\n\n')
+        
+        # threads list
+        fd.write('{\n')
+        fd.write('rank = same; "past"; ')
+        fd.write('; '.join(map(lambda x: x.get_dot_name(), self.threads)))
+        fd.write('\n}\n\n')
+        
+        # time ranking
+        fd.write('node [shape=box];\n')
+        for tm in self.times:
+            if not tm.is_past:
+                fd.write('{{ rank = same; {0}; '.format(tm.get_dot_name()))
+                fd.write(self.time_events[tm][0].get_dot_name())
+                fd.write('}\n')
+                pass
+            pass
+        fd.write('\n')
+        
+        # events
+        def node_list(node): 
+            while node:
+                yield node
+                node = node.child
+            raise StopIteration
+        for th in self.threads:
+            for a, b in pair_iter(node_list(th)):
+                fd.write('{0} -> {1};\n'.format(a.get_dot_name(), b.get_dot_name()))
+                pass
+            pass
+        
         
         # footer
         fd.write('}')
@@ -273,12 +308,12 @@ def main():
 ##    with open('my.dot', 'wb') as fd:
 ##        make_mydot(fd)
 #        
-#    with closing(StringIO()) as fd:
-#        g.make_dot(fd)
-#        win = xdot.DotWindow()
-#        win.set_dotcode(fd.getvalue())
-#        win.connect('destroy', gtk.main_quit)
-#        gtk.main()
+    with closing(StringIO()) as fd:
+        g.make_dot(fd)
+        win = xdot.DotWindow()
+        win.set_dotcode(fd.getvalue())
+        win.connect('destroy', gtk.main_quit)
+        gtk.main()
 
     pass
 
