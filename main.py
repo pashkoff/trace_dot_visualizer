@@ -155,8 +155,11 @@ class Graph():
         fd.write('{\n')
         fd.write('node [shape=plaintext];\n')
         fd.write(' -> '.join(map(lambda x: x.get_dot_name(), sorted(self.times))))
+        fd.write(';\n')
+        fd.write('}\n\n')
         
-        
+        # footer
+        fd.write('}')
             
 
 def make_mydot(fd):
@@ -270,7 +273,7 @@ def main():
 ##        make_mydot(fd)
 #        
 #    with closing(StringIO()) as fd:
-#        make_mydot(fd)
+#        g.make_dot(fd)
 #        win = xdot.DotWindow()
 #        win.set_dotcode(fd.getvalue())
 #        win.connect('destroy', gtk.main_quit)
