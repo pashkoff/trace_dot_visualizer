@@ -36,6 +36,10 @@ class Node(object):
         return False
     def get_dot_name(self):
         return None
+    def get_dot_attrib(self):
+        return '[]'
+    def get_dot_node_name_attrib(self):
+        return '{0} {1};'.format(self.get_dot_name(), self.get_dot_attrib())
     
     def set_parent(self, par):
         if self.parent != par:
@@ -103,13 +107,18 @@ class EventNode(Node):
     
     def get_dot_name(self):
         return '"{0}"'.format(self.event.line)
+    def get_dot_label(self):
+        return r'{0}\n{1}'.format(self.event.line, self.event.time)
+    def get_dot_attrib(self):
+        return '[label="{0}"]'.format(self.get_dot_label())
     
     pass
 
 class Graph():
     def __init__(self, events):
-        self.events = events
+        self.raw_events = events
         
+        self.events = list()
         self.times = set()
         self.time_events = dict()
         self.time_events_th_uniq = dict()
@@ -124,7 +133,7 @@ class Graph():
         lg.info(funcname())
         
         # parse all events and fill base structures
-        for _,v in self.events.iteritems():
+        for _,v in self.raw_events.iteritems():
             tm = TimeNode(v.time)
             if not tm in self.times:
                 self.times.add(tm)
@@ -140,6 +149,8 @@ class Graph():
             ev = EventNode(tm, th, v)
             self.thread_events[th].append(ev)
             self.time_events[tm].append(ev)
+            self.events.append(ev)
+            
             pass
         
         # build the linked list of event and thread nodes
@@ -195,6 +206,12 @@ class Graph():
             for a, b in pair_iter(node_list(th)):
                 fd.write('{0} -> {1};\n'.format(a.get_dot_name(), b.get_dot_name()))
                 pass
+            pass
+        
+        # nodes attributes
+        for ev in self.events:
+            fd.write(ev.get_dot_node_name_attrib())
+            fd.write('\n')
             pass
         
         
