@@ -1,0 +1,3 @@
+[submodule "xdot"]
+	path = xdot
+	url = https://code.google.com/p/jrfonseca.xdot/
