@@ -6,7 +6,7 @@ __author__ = 'pashkoff'
 import logging
 logging.basicConfig(level=logging.DEBUG)
 lg = logging.getLogger(__name__)
-from util import funcname, pair_iter
+from util import funcname, pair_iter, unique_everseen
 
 
 from pygraph.classes.graph import graph
@@ -112,6 +112,7 @@ class Graph():
         
         self.times = set()
         self.time_events = dict()
+        self.time_events_th_uniq = dict()
         self.threads = set()
         self.thread_events = dict()
         
@@ -122,6 +123,7 @@ class Graph():
     def make_graph(self):
         lg.info(funcname())
         
+        # parse all events and fill base structures
         for _,v in self.events.iteritems():
             tm = TimeNode(v.time)
             if not tm in self.times:
@@ -140,6 +142,7 @@ class Graph():
             self.time_events[tm].append(ev)
             pass
         
+        # build the linked list of event and thread nodes
         for th, elist in self.thread_events.iteritems():
             elist[0].set_parent(th)
             elist[0].first = True
@@ -148,6 +151,10 @@ class Graph():
                 b.set_parent(a)
                 pass
             pass
+        
+        # build time events list unique by thread
+        for tm, elist in self.time_events.iteritems():
+            self.time_events_th_uniq[tm] = list(unique_everseen(elist, lambda x: x.thread))
         
         pass
     
@@ -172,13 +179,10 @@ class Graph():
         
         # time ranking
         fd.write('node [shape=box];\n')
-        for tm in self.times:
-            if not tm.is_past:
-                fd.write('{{ rank = same; {0}; '.format(tm.get_dot_name()))
-                fd.write(self.time_events[tm][0].get_dot_name())
-                fd.write('}\n')
-                pass
-            pass
+        for tm, elist in self.time_events_th_uniq.iteritems():
+            fd.write('{{ rank = same; {0}; '.format(tm.get_dot_name()))
+            fd.write('; '.join(map(lambda x: x.get_dot_name(), elist)))
+            fd.write('}\n')
         fd.write('\n')
         
         # events
