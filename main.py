@@ -143,7 +143,7 @@ def make_graph():
 #    print THREADS.keys\
     pass
 
-def make_mydot():
+def make_mydot(fd):
     lg.info(funcname())
 
     tev = dict()
@@ -176,11 +176,6 @@ def make_mydot():
         pass
 
     lg.info('PARENTS')
-
-
-    fd = open('my.dot', 'wb')
-
-    lg.info('opened file my.dot')
 
     fd.write('digraph {\n')
 
@@ -237,9 +232,7 @@ def make_mydot():
     lg.info('done edges')
 
     fd.write('}')
-    fd.close()
 
-    lg.info('file closed')
     pass
 
 
@@ -283,7 +276,9 @@ def main():
 
     make_graph()
 #    make_pygraph()
-    make_mydot()
+
+    with open('my.dot', 'wb') as fd:
+        make_mydot(fd)
 
     pass
 
