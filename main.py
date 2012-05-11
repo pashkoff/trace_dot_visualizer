@@ -54,12 +54,13 @@ class Node(object):
 class ThreadNode(Node):
     def __init__(self, thread):
         self.thread = thread
+        self.h = int(thread)
         super(ThreadNode, self).__init__()
         pass
     def __hash__(self):
-        return self.thread.__hash__()
+        return self.h
     def __eq__(self, other):
-        return self.thread.__eq__(other)
+        return self.h == other.h
     def __str__(self):
         return str(self.thread)
     def get_dot_name(self):
