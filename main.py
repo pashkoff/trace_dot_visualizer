@@ -33,7 +33,7 @@ class DotObject(object):
         pass
     def get_dot_attrib(self):
         a = self.attribs.items()
-        b = map(lambda x: '{0}="{1}"'.format(x[0],x[1]), a)
+        b = map(lambda x: '{0}="{1}"'.format(x[0], x[1]() if hasattr(x[1], '__call__') else x[1]), a)
         return '[{0}]'.format(','.join(b))
 
 class Node(DotObject):
@@ -43,7 +43,11 @@ class Node(DotObject):
         self.child = None
         self.sec_parent = set()
         self.sec_child = set()
+        self.links = set()
+        self.consumed_nodes = list()
+        self.consumed = False
         pass
+    
     def is_shrinkable(self):
         return False
     def get_dot_name(self):
@@ -54,29 +58,36 @@ class Node(DotObject):
     def set_parent(self, par):
         if self.parent != par:
             self.parent = par
-            par.set_child(self)
+            if par: par.set_child(self)
             pass
         pass
     def set_child(self, chi):
         if self.child != chi:
             self.child = chi
-            chi.set_parent(self)
+            if chi: chi.set_parent(self)
             pass
         pass
     
     def set_sec_parent(self, par):
         if not par in self.sec_parent:
             self.sec_parent.add(par)
-            par.set_sec_child(self)
+            if par: par.set_sec_child(self)
             pass
         pass
     def set_sec_child(self, chi):
         if not chi in self.sec_child:
             self.sec_child.add(chi)
-            chi.set_sec_parent(self)
+            if chi: chi.set_sec_parent(self)
             pass
         pass
     
+    def consume_child(self):
+        self.consumed_nodes.append(self.child)
+        if self.child: self.child.consumed = True
+        self.set_child(self.child.child)
+        pass
+    
+    pass
 
 class ThreadNode(Node):
     def __init__(self, thread, proc):
@@ -128,13 +139,17 @@ class EventNode(Node):
         self.thread = thread
         self.event = event
         super(EventNode, self).__init__()
-        self.attribs['label'] = self.get_dot_label()
+        self.attribs['label'] = self.get_dot_label
         pass
     
     def get_dot_name(self):
         return '"{0}"'.format(self.event.line)
+    
     def get_dot_label(self):
-        return r'{0}-{1} - {2}:{3}\n{4}'.format(self.event.line, self.event.level, self.event.source, self.event.source_line, self.event.msg)
+        lab = r'{0}-{1} - {2}:{3}\n{4}'.format(self.event.line, self.event.level, self.event.source, self.event.source_line, self.event.msg)
+        clab = r'\n'.join(map(lambda x: x.get_dot_label(), self.consumed_nodes))
+        return lab + r'\n' + clab
+            
     
     pass
 
@@ -183,6 +198,9 @@ class IpcLink(Link):
         
         frm.attribs.update({'color':color})
         to.attribs.update({'color':color})
+        
+        frm.links.add(self)
+        to.links.add(self)
         pass
     pass
       
@@ -275,6 +293,7 @@ class Graph():
             pass
         
         self.find_hor_links()
+        self.shrink_graph()
         
         pass
     
@@ -385,9 +404,30 @@ class Graph():
                 find_req_target(ev, req)
             except ParseError:
                 pass
-                        
+            pass
         
         pass
+    
+    def shrink_graph(self):
+        def nonshrinkable(ev):
+            if len(ev.links) > 0:
+                return True
+            if ev in self.time_events_th_uniq[ev.time]:
+                return True
+            if ev.consumed:
+                return False
+            return False
+        
+        def shrink(ev):
+            while ev.child and not nonshrinkable(ev.child):
+                ev.consume_child()
+                pass
+            return ev
+        
+        self.events[:] = [shrink(ev) for ev in self.events if nonshrinkable(ev)]
+        
+        pass
+            
     
     
     def make_dot(self, fd):
