@@ -376,7 +376,7 @@ class Graph():
         # ipc search
         
         def find_resp_target(req_frm, req_to, req, resp_from, resp):
-            possible_events = filter(lambda x: x.event.time >= resp_from.event.time, self.thread_events[req_frm.thread])
+            possible_events = self.thread_events[req_frm.thread]
             for pev in possible_events:
                 try:
                     ipc_resp_got(pev, resp)
@@ -388,7 +388,7 @@ class Graph():
             pass
         
         def find_resp(ev_from, ev_to, req):
-            possible_events = filter(lambda x: x.event.time >= ev_to.event.time, self.thread_events[ev_to.thread])
+            possible_events = self.thread_events[ev_to.thread]
             req_c = req.copy()
             del req_c['size']
             for pev in possible_events:
@@ -402,7 +402,7 @@ class Graph():
             pass
         
         def find_req_target(ev, req):
-            possible_events = filter(lambda x: x.event.time >= ev.event.time and x.thread != ev.thread, self.events)
+            possible_events = filter(lambda x: x.thread != ev.thread, self.events)
             for pev in possible_events:
                 try:
                     ipc_req_got(pev, req)
