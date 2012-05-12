@@ -324,11 +324,17 @@ class Graph():
                 raise ParseError
             pass
             
-        def ipc_resp_sent(ev):
+        def ipc_resp_sent(ev, constr):
             if ev.event.level == 'INFO' and ev.event.source.find('CIpc.cpp') != -1:
                 m = ipc_resp_sent_re.match(ev.event.msg)
                 if not m:
                     raise ParseError
+                
+                d = m.groupdict()
+                for k,v in d.iteritems():
+                    if k in constr and constr[k] != v:
+                        raise ParseError
+                    pass
                     
                 return m.groupdict()
             else:
@@ -383,9 +389,11 @@ class Graph():
         
         def find_resp(ev_from, ev_to, req):
             possible_events = filter(lambda x: x.event.time >= ev_to.event.time, self.thread_events[ev_to.thread])
+            req_c = req.copy()
+            del req_c['size']
             for pev in possible_events:
                 try:
-                    resp = ipc_resp_sent(pev)
+                    resp = ipc_resp_sent(pev, req_c)
                     find_resp_target(ev_from, ev_to, req, pev, resp)
                     break
                 except ParseError:
