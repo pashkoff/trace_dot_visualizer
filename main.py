@@ -137,7 +137,7 @@ class InvisibleNode(Node):
     def get_dot_name(self):
         return '"{0}"'.format(self.name)
     def get_dot_attrib(self):
-        return '[style=invisible,overlap=false,label=""]'
+        return '[style=invisible,shape=point,overlap=false,label=""]'
     
     def set_parent(self, par):
         if self.parent != par:
