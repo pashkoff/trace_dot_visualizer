@@ -171,13 +171,17 @@ class Link(DotObject):
 
 
 class IpcLink(Link):
-    def __init__(self, frm, to, is_req = True):
+    def __init__(self, frm, to, is_req):
         super(IpcLink, self).__init__(frm, to)
         self.is_req = is_req
-        self.attribs.update({'color':'red', 'constraint':'false'})
+        color = 'red' if is_req else 'blue'
+        self.attribs.update({'color':color, 'constraint':'false'})
         
-#    def get_dot_code(self):
-#        return '{0} -> {1}[color=red,constraint=false];\n'.format(il.frm.get_dot_name(), il.to.get_dot_name()))
+        frm.attribs.update({'color':color})
+        to.attribs.update({'color':color})
+        pass
+    pass
+      
         
 
 class Graph():
@@ -339,7 +343,7 @@ class Graph():
             for pev in possible_events:
                 try:
                     ipc_resp_got(pev, resp)
-                    self.ipc_links.append(IpcLink(resp_from, pev))
+                    self.ipc_links.append(IpcLink(resp_from, pev, False))
                     break
                 except ParseError:
                     pass
@@ -363,7 +367,7 @@ class Graph():
             for pev in possible_events:
                 try:
                     ipc_req_got(pev, req)
-                    self.ipc_links.append(IpcLink(ev, pev))
+                    self.ipc_links.append(IpcLink(ev, pev, True))
                     find_resp(ev, pev, req)
                     break
                 except ParseError:
@@ -439,7 +443,8 @@ class Graph():
         
         # ipc links
         for il in self.ipc_links:
-            fd.write('{0} -> {1}[color=red,constraint=false];\n'.format(il.frm.get_dot_name(), il.to.get_dot_name()))
+            fd.write(il.get_dot_code())
+            fd.write('\n')
         
         
         
@@ -457,9 +462,6 @@ def main():
     g = Graph(EVENTS)
     g.make_graph()
     
-    with open('test.dot', 'wb') as fd:
-        g.make_dot(fd)
-
 #    make_graph()
 #
 ##    with open('my.dot', 'wb') as fd:
@@ -467,6 +469,8 @@ def main():
 #        
     with closing(StringIO()) as fd:
         g.make_dot(fd)
+        with open('test.dot', 'wb') as ffd:
+            ffd.write(fd.getvalue())
         win = xdot.DotWindow()
         win.set_dotcode(fd.getvalue())
         win.connect('destroy', gtk.main_quit)
