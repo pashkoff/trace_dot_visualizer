@@ -121,7 +121,7 @@ def parse(lines):
 
         lg.info(ev)
 
-        if i >= 200:
+        if i >= 500:
             break
 
         pass

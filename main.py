@@ -123,7 +123,7 @@ class EventNode(Node):
     def get_dot_name(self):
         return '"{0}"'.format(self.event.line)
     def get_dot_label(self):
-        return r'{0}\n{1}'.format(self.event.line, self.event.time)
+        return r'{0}-{1} - {2}:{3}\n{4}'.format(self.event.line, self.event.level, self.event.source, self.event.source_line, self.event.msg)
     def get_dot_attrib(self):
         return '[label="{0}"]'.format(self.get_dot_label())
     
@@ -299,7 +299,7 @@ class Graph():
 
 def main():
     
-    with open('log.txt', 'r') as fd:
+    with open('last.log', 'r') as fd:
         global EVENTS
         EVENTS = parse(fd)
         
