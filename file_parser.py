@@ -43,7 +43,7 @@ class ParseError(BaseException):
 
 class SimpleEventParser():
     def __init__(self):
-        self.r = re.compile(r'.*?\[(?P<time>[\d:.]*)\]\{TID (?P<thread>\d*)\}(?P<msg>.*)')
+        self.r = re.compile(r'.*?\[(?P<time>[\d:.]*)\]\{TID (?P<thread>\d*):(?P<proc>\d+)\}(?P<msg>.*)')
 
     def parse_line(self, line):
 
