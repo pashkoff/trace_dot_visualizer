@@ -169,6 +169,10 @@ class Link(DotObject):
     def get_dot_code(self):
         return '{0} -> {1} {2}'.format(self.frm.get_dot_name(), self.to.get_dot_name(), self.get_dot_attrib())
 
+class InvisibleLink(Link):
+    def __init__(self, frm, to):
+        super(InvisibleLink, self).__init__(frm, to)
+        self.attribs.update({'style':'invisible', 'dir':'none'})
 
 class IpcLink(Link):
     def __init__(self, frm, to, is_req):
@@ -427,8 +431,9 @@ class Graph():
         
         # invisible nodes
         for ie in self.invis_nodes:
-            fd.write('{0} -> {1}[style=invisible,dir=none];\n'.format(ie.parent.get_dot_name(), ie.get_dot_name()))
-            fd.write('{0} -> {1}[style=invisible,dir=none];\n'.format(ie.get_dot_name(), ie.child.get_dot_name()))
+            fd.write(InvisibleLink(ie.parent, ie).get_dot_code()); fd.write('\n')
+            fd.write(InvisibleLink(ie, ie.child).get_dot_code()); fd.write('\n')
+        fd.write('\n')
         
         # nodes attributes
         def write_attribs(lis):
@@ -443,8 +448,7 @@ class Graph():
         
         # ipc links
         for il in self.ipc_links:
-            fd.write(il.get_dot_code())
-            fd.write('\n')
+            fd.write(il.get_dot_code()); fd.write('\n')
         
         
         
