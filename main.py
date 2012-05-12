@@ -71,15 +71,17 @@ class Node(object):
     
 
 class ThreadNode(Node):
-    def __init__(self, thread):
-        self.thread = thread
-        self.h = int(thread)
+    def __init__(self, thread, proc):
+        self.thread = '{0}:{1}'.format(thread, proc)
+        self.ht = int(thread)
+        self.hh = int(proc)
+        self.h = self.ht * 1000000 + self.hh
         super(ThreadNode, self).__init__()
         pass
     def __hash__(self):
         return self.h
     def __eq__(self, other):
-        return self.h == other.h
+        return self.ht == other.ht and self.hh == other.hh
     def __str__(self):
         return str(self.thread)
     def get_dot_name(self):
@@ -177,7 +179,7 @@ class Graph():
                 self.time_events[tm] = list()
                 pass
             
-            th = ThreadNode(v.thread)
+            th = ThreadNode(v.thread, v.proc)
             if not th in self.threads:
                 self.threads.add(th)
                 self.thread_events[th] = list()
