@@ -31,6 +31,8 @@ class Node(object):
     def __init__(self):
         self.parent = None
         self.child = None
+        self.sec_parent = set()
+        self.sec_child = set()
         pass
     def is_shrinkable(self):
         return False
@@ -51,6 +53,19 @@ class Node(object):
         if self.child != chi:
             self.child = chi
             chi.set_parent(self)
+            pass
+        pass
+    
+    def set_sec_parent(self, par):
+        if not par in self.sec_parent:
+            self.sec_parent.add(par)
+            par.set_sec_child(self)
+            pass
+        pass
+    def set_sec_child(self, chi):
+        if not chi in self.sec_child:
+            self.sec_child.add(chi)
+            chi.set_sec_parent(self)
             pass
         pass
     
@@ -114,11 +129,33 @@ class EventNode(Node):
     
     pass
 
+class InvisibleNode(Node):
+    def __init__(self, name):
+        self.name = name
+        super(InvisibleNode, self).__init__()
+        pass
+    def get_dot_name(self):
+        return '"{0}"'.format(self.name)
+    def get_dot_attrib(self):
+        return '[style=invisible,overlap=false,label=""]'
+    
+    def set_parent(self, par):
+        if self.parent != par:
+            self.parent = par
+            pass
+        pass
+    def set_child(self, chi):
+        if self.child != chi:
+            self.child = chi
+            pass
+        pass
+
 class Graph():
     def __init__(self, events):
         self.raw_events = events
         
         self.events = list()
+        self.invis_nodes = list()
         self.times = set()
         self.time_events = dict()
         self.time_events_th_uniq = dict()
@@ -167,6 +204,36 @@ class Graph():
         for tm, elist in self.time_events.iteritems():
             self.time_events_th_uniq[tm] = list(unique_everseen(elist, lambda x: x.thread))
         
+        # set invisible nodes to fix time ranking
+        for tma, tmb in pair_iter(sorted(self.times)):
+            elista = self.time_events_th_uniq[tma]
+            elistb = self.time_events_th_uniq[tmb]
+            have_threads_a = {e.thread for e in elista}
+            have_threads_b = {e.thread for e in elistb}
+            lack_threads_b = self.threads - have_threads_b
+            
+            for th in lack_threads_b:
+                if th in have_threads_a:
+                    e = (e for e in elista if e.thread == th).next()
+                    while e.child and e.child.time == e.time: 
+                        e = e.child
+                        pass
+                    if e.child:
+                        ie = InvisibleNode(str(th) + str(tmb) + 'invis')
+                        ie.thread = th
+                        ie.time = tmb
+                        e.set_sec_child(ie)
+                        e.child.set_sec_parent(ie)
+                        ie.set_parent(e)
+                        ie.set_child(e.child)
+                        self.time_events_th_uniq[tmb].append(ie)
+                        
+                        self.invis_nodes.append(ie)
+                        pass
+                    pass
+                pass # for th in lac_th
+            pass 
+        
         pass
     
     def make_dot(self, fd):
@@ -208,11 +275,22 @@ class Graph():
                 pass
             pass
         
+        # invisible nodes
+        for ie in self.invis_nodes:
+            fd.write('{0} -> {1}[style=invisible,dir=none];\n'.format(ie.parent.get_dot_name(), ie.get_dot_name()))
+            fd.write('{0} -> {1}[style=invisible,dir=none];\n'.format(ie.get_dot_name(), ie.child.get_dot_name()))
+        
         # nodes attributes
-        for ev in self.events:
-            fd.write(ev.get_dot_node_name_attrib())
+        def write_attribs(lis):
+            for ev in lis:
+                fd.write(ev.get_dot_node_name_attrib())
+                fd.write('\n')
+                pass
             fd.write('\n')
             pass
+        write_attribs(self.events)
+        write_attribs(self.invis_nodes)
+        
         
         
         # footer
