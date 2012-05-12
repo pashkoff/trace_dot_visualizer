@@ -27,8 +27,18 @@ PARENTS = dict()
 
 from file_parser import parse
 
-class Node(object):
+class DotObject(object):
     def __init__(self):
+        self.attribs = dict()
+        pass
+    def get_dot_attrib(self):
+        a = self.attribs.items()
+        b = map(lambda x: '{0}="{1}"'.format(x[0],x[1]), a)
+        return '[{0}]'.format(','.join(b))
+
+class Node(DotObject):
+    def __init__(self):
+        super(Node, self).__init__()
         self.parent = None
         self.child = None
         self.sec_parent = set()
@@ -38,8 +48,6 @@ class Node(object):
         return False
     def get_dot_name(self):
         return None
-    def get_dot_attrib(self):
-        return '[]'
     def get_dot_node_name_attrib(self):
         return '{0} {1};'.format(self.get_dot_name(), self.get_dot_attrib())
     
@@ -120,14 +128,13 @@ class EventNode(Node):
         self.thread = thread
         self.event = event
         super(EventNode, self).__init__()
+        self.attribs['label'] = self.get_dot_label()
         pass
     
     def get_dot_name(self):
         return '"{0}"'.format(self.event.line)
     def get_dot_label(self):
         return r'{0}-{1} - {2}:{3}\n{4}'.format(self.event.line, self.event.level, self.event.source, self.event.source_line, self.event.msg)
-    def get_dot_attrib(self):
-        return '[label="{0}"]'.format(self.get_dot_label())
     
     pass
 
@@ -135,11 +142,12 @@ class InvisibleNode(Node):
     def __init__(self, name):
         self.name = name
         super(InvisibleNode, self).__init__()
+        self.attribs.update({'style':'invisible', 'shape':'point', 'overlap':'false', 'label':''})
         pass
     def get_dot_name(self):
         return '"{0}"'.format(self.name)
-    def get_dot_attrib(self):
-        return '[style=invisible,shape=point,overlap=false,label=""]'
+#    def get_dot_attrib(self):
+#        return '[style=invisible,shape=point,overlap=false,label=""]'
     
     def set_parent(self, par):
         if self.parent != par:
@@ -152,10 +160,24 @@ class InvisibleNode(Node):
             pass
         pass
 
-class IpcLink():
+class Link(DotObject):
     def __init__(self, frm, to):
+        super(Link, self).__init__()
         self.frm = frm
         self.to = to
+        
+    def get_dot_code(self):
+        return '{0} -> {1} {2}'.format(self.frm.get_dot_name(), self.to.get_dot_name(), self.get_dot_attrib())
+
+
+class IpcLink(Link):
+    def __init__(self, frm, to, is_req = True):
+        super(IpcLink, self).__init__(frm, to)
+        self.is_req = is_req
+        self.attribs.update({'color':'red', 'constraint':'false'})
+        
+#    def get_dot_code(self):
+#        return '{0} -> {1}[color=red,constraint=false];\n'.format(il.frm.get_dot_name(), il.to.get_dot_name()))
         
 
 class Graph():
