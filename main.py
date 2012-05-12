@@ -83,7 +83,17 @@ class Node(DotObject):
     
     def consume_child(self):
         self.consumed_nodes.append(self.child)
-        if self.child: self.child.consumed = True
+        if self.child: 
+            self.child.consumed = True
+            map(self.set_sec_child, self.child.sec_child)
+            for sc in self.child.sec_child:
+                if sc.parent == self.child:
+                    sc.parent = self
+                    pass
+                sc.sec_parent.discard(self.child)
+                pass
+            pass
+                        
         self.set_child(self.child.child)
         pass
     
@@ -147,7 +157,7 @@ class EventNode(Node):
     
     def get_dot_label(self):
         lab = r'{0}-{1} - {2}:{3}\n{4}'.format(self.event.line, self.event.level, self.event.source, self.event.source_line, self.event.msg)
-        clab = r'\n'.join(map(lambda x: x.get_dot_label(), self.consumed_nodes))
+        clab = r' '.join(map(lambda x: x.get_dot_label(), self.consumed_nodes))
         return lab + r'\n' + clab
             
     
@@ -161,8 +171,6 @@ class InvisibleNode(Node):
         pass
     def get_dot_name(self):
         return '"{0}"'.format(self.name)
-#    def get_dot_attrib(self):
-#        return '[style=invisible,shape=point,overlap=false,label=""]'
     
     def set_parent(self, par):
         if self.parent != par:
