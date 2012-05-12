@@ -13,7 +13,7 @@ from pygraph.classes.graph import graph
 from pygraph.classes.digraph import digraph
 from pygraph.readwrite.dot import write
 
-
+import re
 
 from cStringIO import StringIO
 from contextlib import closing
@@ -152,6 +152,12 @@ class InvisibleNode(Node):
             pass
         pass
 
+class IpcLink():
+    def __init__(self, frm, to):
+        self.frm = frm
+        self.to = to
+        
+
 class Graph():
     def __init__(self, events):
         self.raw_events = events
@@ -163,6 +169,8 @@ class Graph():
         self.time_events_th_uniq = dict()
         self.threads = set()
         self.thread_events = dict()
+        
+        self.ipc_links = list()
         
         past = TimeNode('past')
         self.times.add(past)
@@ -234,9 +242,123 @@ class Graph():
                         pass
                     pass
                 pass # for th in lac_th
-            pass 
+            pass
+        
+        self.find_hor_links()
         
         pass
+    
+    def find_hor_links(self):
+        class ParseError(BaseException):pass
+        
+        ipc_req_sent_re  = re.compile(r"Ipc request sent addr='(?P<addr>.*)' MsgId=(?P<msgid>\d*) size=(?P<size>\d*)")
+        ipc_resp_sent_re = re.compile(r"Ipc response sent addr='(?P<addr>.*)' MsgId=(?P<msgid>\d*) size=(?P<size>\d*)")
+        ipc_req_got_re   = re.compile(r"Ipc got request addr='(?P<addr>.*)' MsgId=(?P<msgid>\d*) size=(?P<size>\d*)")
+        ipc_resp_got_re  = re.compile(r"Ipc request done addr='(?P<addr>.*)' MsgId=(?P<msgid>\d*) size=(?P<size>\d*)")
+        
+        def ipc_req_sent(ev):
+            if ev.event.level == 'INFO' and ev.event.source.find('CIpc.cpp') != -1:
+                m = ipc_req_sent_re.match(ev.event.msg)
+                if not m:
+                    raise ParseError
+                    
+                return m.groupdict()
+            else:
+                raise ParseError
+            pass
+            
+        def ipc_resp_sent(ev):
+            if ev.event.level == 'INFO' and ev.event.source.find('CIpc.cpp') != -1:
+                m = ipc_resp_sent_re.match(ev.event.msg)
+                if not m:
+                    raise ParseError
+                    
+                return m.groupdict()
+            else:
+                raise ParseError
+            pass
+            
+        def ipc_req_got(ev, constr):
+            if ev.event.level == 'INFO' and ev.event.source.find('CIpc.cpp') != -1:
+                m = ipc_req_got_re.match(ev.event.msg)
+                if not m:
+                    raise ParseError
+                d = m.groupdict()
+                for k,v in d.iteritems():
+                    if k in constr and constr[k] != v:
+                        raise ParseError
+                    pass
+                                   
+                return 
+            else:
+                raise ParseError
+            pass
+        
+        def ipc_resp_got(ev, constr):
+            if ev.event.level == 'INFO' and ev.event.source.find('CIpc.cpp') != -1:
+                m = ipc_resp_got_re.match(ev.event.msg)
+                if not m:
+                    raise ParseError
+                d = m.groupdict()
+                for k,v in d.iteritems():
+                    if k in constr and constr[k] != v:
+                        raise ParseError
+                    pass
+                                   
+                return 
+            else:
+                raise ParseError
+            pass
+        
+        # ipc search
+        
+        def find_resp_target(req_frm, req_to, req, resp_from, resp):
+            possible_events = filter(lambda x: x.event.time >= resp_from.event.time, self.thread_events[req_frm.thread])
+            for pev in possible_events:
+                try:
+                    ipc_resp_got(pev, resp)
+                    self.ipc_links.append(IpcLink(resp_from, pev))
+                    break
+                except ParseError:
+                    pass
+                pass
+            pass
+        
+        def find_resp(ev_from, ev_to, req):
+            possible_events = filter(lambda x: x.event.time >= ev_to.event.time, self.thread_events[ev_to.thread])
+            for pev in possible_events:
+                try:
+                    resp = ipc_resp_sent(pev)
+                    find_resp_target(ev_from, ev_to, req, pev, resp)
+                    break
+                except ParseError:
+                    pass
+                pass                        
+            pass
+        
+        def find_req_target(ev, req):
+            possible_events = filter(lambda x: x.event.time >= ev.event.time and x.thread != ev.thread, self.events)
+            for pev in possible_events:
+                try:
+                    ipc_req_got(pev, req)
+                    self.ipc_links.append(IpcLink(ev, pev))
+                    find_resp(ev, pev, req)
+                    break
+                except ParseError:
+                    pass
+                pass
+            pass
+                
+        for ev in self.events:
+            try:
+                req = ipc_req_sent(ev)
+                find_req_target(ev, req)
+            except ParseError:
+                pass
+                        
+        
+        pass
+    
     
     def make_dot(self, fd):
         lg.info(funcname())
@@ -292,6 +414,10 @@ class Graph():
             pass
         write_attribs(self.events)
         write_attribs(self.invis_nodes)
+        
+        # ipc links
+        for il in self.ipc_links:
+            fd.write('{0} -> {1}[color=red,constraint=false];\n'.format(il.frm.get_dot_name(), il.to.get_dot_name()))
         
         
         
